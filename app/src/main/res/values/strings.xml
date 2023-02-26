@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">capstone1</string>
+    <string name="phone_serial_number">Phone serial number</string>
+    <string name="proximity_card_id">"Proximity card id: "</string>
+    <string name="qr_code_uuid">"QR code UUID: "</string>
+    <string name="scanQRcode">Scan QR code</string>
+    <string name="connect_to_database">Connect to database</string>
+</resources>

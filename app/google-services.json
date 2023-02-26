@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "408020853320",
+    "project_id": "fir-project-fd684",
+    "storage_bucket": "fir-project-fd684.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408020853320:android:939bc1ce5f75189db3ee7d",
+        "android_client_info": {
+          "package_name": "edu.acg.o.papadopoulos.capstone1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "408020853320-8t8k02nr44u4q4teq7sir2lgsku939bo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV4R-ofPpWOJujVFhbTIW8gVprfcHx00o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "408020853320-8t8k02nr44u4q4teq7sir2lgsku939bo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
