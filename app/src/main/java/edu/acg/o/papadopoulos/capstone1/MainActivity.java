@@ -2,6 +2,7 @@ package edu.acg.o.papadopoulos.capstone1;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.net.wifi.WifiManager;
@@ -36,17 +37,23 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-
 public class MainActivity extends AppCompatActivity {
 
-    private Button btn_register_sign_in;
-    private final String server_url = "http://192.168.2.59/capstone/register_user.php";
     private NfcAdapter nfcAdapter;
     private WifiManager wifiManager;
-
+    private Button btn_register_sign_in;
+    private final String server_url = "http://192.168.2.59/capstone/register_user.php";
     private String qr_code_data = "", uuid = "", proximity_card_id = "", session_id = "";
     final String uuid_file = "user_uuid";
-    boolean uuid_file_exists;
+    boolean uuid_file_exists = false;
+    private AlertDialog scanCardDialog; // might need to show/hide multiple times
+
+    // use PendingIntent, and ForegroundDispatch to prevent Activity from reopening if card is scanned while app is open
+
+    // the app can open auto if card is scanned
+    // if the app is opened manually, wait for card to be scanned with this Intent
+    private PendingIntent cardWasScanned;
+    private Tag tag;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -82,21 +89,32 @@ public class MainActivity extends AppCompatActivity {
                     .show();
         }
 
-        // 3: onResume()
+        // 3: onResume() called
 
         // 4: check if app-specific file exists; if it does, the user has been registered
         String[] app_specific_files = getApplicationContext().fileList();
         uuid_file_exists = Arrays.asList(app_specific_files).contains(uuid_file);
 
-        // if the user is registered, change btn text
-        if (uuid_file_exists) btn_register_sign_in.setText(R.string.sign_in);
+        // 5: if the user is registered, change btn text
+        if (uuid_file_exists) {
+            supportInvalidateOptionsMenu();
+            btn_register_sign_in.setText(R.string.sign_in);
+        }
 
-        // todo: use the foreground dispatch system (reason: if the app is open, do not reopen the activity)
+        cardWasScanned = PendingIntent.getActivity(this,0,
+                new Intent(this, this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
 
+        scanCardDialog = new AlertDialog.Builder(this)
+                .setTitle("Scan Your Card")
+                .setMessage("Put your card on the back of your phone")
+                .setNegativeButton("Cancel", (dialog, id) -> {})
+                .create();
+
+        // try block executes successfully if app opens with scan
         try {
-            Tag tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
             proximity_card_id = tag.getId().toString();
-            if (!proximity_card_id.equals("")) addCardIdToDatabase();
+            notification("Card scan caused app to open");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -126,6 +144,15 @@ public class MainActivity extends AppCompatActivity {
                     })
                     .show();
         }
+
+        // enable the foreground dispatch to wait for card scan
+        nfcAdapter.enableForegroundDispatch(this, cardWasScanned,null,null);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        nfcAdapter.disableForegroundDispatch(this);
     }
 
     @Override
@@ -133,6 +160,17 @@ public class MainActivity extends AppCompatActivity {
         super.onNewIntent(intent);
         // for opening the app when an NFC tag is detected
         setIntent(intent);
+
+        // called when card is scanned while app is open
+        try {
+            tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            proximity_card_id = tag.getId().toString();
+            if (!uuid.equals("")) updateCardInDatabase();
+            scanCardDialog.cancel();
+            notification("Card scanned while app open");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -148,20 +186,31 @@ public class MainActivity extends AppCompatActivity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.settings_option:
-                notification("Settings was clicked");
+                notification("No Settings yet");
             case R.id.about_option:
-                notification("About was clicked");
+                notification("No About yet");
             case R.id.delete_account_option:
                 if (uuid_file_exists) {
                     File file = new File(this.getFilesDir(), uuid_file);
                     file.delete();
-                    notification("Delete Account was clicked");
+                    uuid_file_exists = false;
+                    btn_register_sign_in.setText(R.string.register);
+                    // update options menu >> hide "Delete account" option
+                    supportInvalidateOptionsMenu();
+                    notification("uuid deleted from app-specific storage");
                 }
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
+    // for changes during runtime
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        menu.findItem(R.id.delete_account_option).setVisible(uuid_file_exists);
+        return false;
+    }
 
     public void notification(String message) {
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
@@ -169,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void openQRCodeScanner() {
         ScanOptions options = new ScanOptions();
-        options.setPrompt("Press volume up to turn flash on\n");
+        options.setPrompt("Press volume up to turn flash on\n\n\n\n\n\n\n\n");
         options.setBeepEnabled(true);
         options.setOrientationLocked(true);
         options.setCaptureActivity(CaptureAct.class);
@@ -187,26 +236,14 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // the user is not registered, so the QR code corresponds to uuid
             uuid = qr_code_data;
-            try (FileOutputStream fileOutputStream = this.openFileOutput(uuid_file, Context.MODE_PRIVATE)) {
-                fileOutputStream.write(uuid.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (!proximity_card_id.equals("")) updateCardInDatabase();
+            else {
+                scanCardDialog.show();
             }
-        }
-
-        if (!proximity_card_id.equals("")) addCardIdToDatabase();
-        else {
-            // prompt user to scan their card, and then execute the following
-            new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("Scan Your NFC Card")
-                    .setMessage("Put your card on the back of your phone.")
-                    .setNegativeButton("Cancel", (dialog, id) -> {
-                    })
-                    .show();
         }
     });
 
-    public void addCardIdToDatabase() {
+    public void updateCardInDatabase() {
         // POST uuid and proximity card id to XAMPP server
         // there, a PHP script will add to the user with uuid the proximity card id
         StringRequest stringRequest = new StringRequest(Request.Method.POST, server_url, new Response.Listener<String>() {
@@ -220,15 +257,28 @@ public class MainActivity extends AppCompatActivity {
                 notification("onErrorResponse() called");
                 error.printStackTrace();
             }
-        }){
+        }) {
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
-                Map <String,String> Params = new HashMap<>();
+                Map<String, String> Params = new HashMap<>();
                 Params.put("qr_code_uuid", uuid);
                 Params.put("proximity_card_id", proximity_card_id);
                 return Params;
             }
         };
         Singleton.getInstance(MainActivity.this).addToRequestQueue(stringRequest);
+
+        // registration is complete
+        btn_register_sign_in.setText(R.string.sign_in);
+
+        try (FileOutputStream fileOutputStream = this.openFileOutput(uuid_file, Context.MODE_PRIVATE)) {
+            fileOutputStream.write(uuid.getBytes());
+            uuid_file_exists = true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // update options menu >> make "Delete account" option visible
+        supportInvalidateOptionsMenu();
     }
 }
