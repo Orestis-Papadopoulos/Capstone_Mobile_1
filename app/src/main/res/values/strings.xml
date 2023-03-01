@@ -3,4 +3,17 @@
     <string name="scanQRcode">Scan QR code</string>
     <string name="connect_to_database">Connect to database</string>
     <string name="register">Register</string>
+    <string name="sign_in">Sign In</string>
+    <string name="ok">OK</string>
+    <string name="nfc_not_supported">NFC Not Supported</string>
+    <string name="this_application_cannot_function_without_NFC">This application cannot function without NFC.</string>
+    <string name="nfc_disabled">NFC Disabled</string>
+    <string name="this_application_requires_NFC_do_you_want_to_turn_it_on">This application requires NFC. Do you want to turn it on?</string>
+    <string name="no">NO</string>
+    <string name="wifi_disabled">WiFi Disabled</string>
+    <string name="this_application_requires_an_Internet_connection_do_you_want_to_turn_WiFi_on">This application requires an Internet connection. Do you want to turn WiFi on?</string>
+    <string name="yes">YES</string>
+    <string name="about">About</string>
+    <string name="delete_account">Delete account</string>
+    <string name="settings">Settings</string>
 </resources>
