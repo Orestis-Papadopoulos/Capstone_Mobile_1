@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
     // this boolean must be updated after every time postDataToServer() is called with operation REGISTER_USER or DELETE_USER
     private boolean user_is_registered = false;
-    private AlertDialog scanCardDialog; // might need to show/hide multiple times
+    private AlertDialog scanCardDialog, pendingAuthenticationDialog; // might need to show/hide multiple times
 
     // use PendingIntent, and ForegroundDispatch to prevent Activity from reopening if card is scanned while app is open
     // the app can open auto if card is scanned; if the app is opened manually, wait for card to be scanned with this Intent
@@ -125,11 +125,11 @@ public class MainActivity extends AppCompatActivity {
         // notice: the dialog is created, not shown
         scanCardDialog = new AlertDialog.Builder(this)
                 .setTitle("Scan Your Card")
-                .setMessage("Put your card on the back of your phone")
+                .setMessage("Put your card on the back of your phone.")
                 .setNegativeButton("Cancel", (dialog, id) -> {})
                 .create();
 
-        // try block executes successfully if app opens with scan
+        // executes (only once) if app opens with scan
         try {
             tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
             // tag.getId() returns byte array; convert to String
@@ -178,10 +178,15 @@ public class MainActivity extends AppCompatActivity {
 
         // called when card is scanned while app is open
         try {
+            // handle multiple card scans
+            if (!proximity_card_id.equals("")) {
+                notification("You've already scanned your card.");
+                return;
+            }
             tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
             proximity_card_id = new String(tag.getId(), StandardCharsets.UTF_8);
 
-            if (!user_is_registered) {
+            if (!user_is_registered && !user_uuid.equals("")) {
                 postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.REGISTER_USER);
                 user_is_registered = true;
                 btn_register_sign_in.setText(R.string.sign_in);
@@ -200,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             scanCardDialog.cancel(); // if the dialog has been opened, close it on card scan
+            pendingAuthenticationDialog.cancel();
             notification("Card scanned while app open");
         } catch (Exception e) {
             e.printStackTrace();
@@ -222,19 +228,34 @@ public class MainActivity extends AppCompatActivity {
             case R.id.about_option:
                 notification("No About yet");
             case R.id.delete_account_option:
-                new File(this.getFilesDir(), uuid_filename).delete();
-                uuid_file_exists = false;
+                if (proximity_card_id.equals("")) {
+                    pendingAuthenticationDialog = new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Pending Authentication")
+                            .setMessage("Scan your card and then try to delete your account.")
+                            .setNegativeButton(R.string.cancel, (dialog, id) -> {
+                            })
+                            .show();
+                } else {
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Confirm Account Deletion")
+                            .setMessage("Are you sure you want to delete your account?")
+                            .setPositiveButton(R.string.yes, (dialog, id) -> {
+                                new File(this.getFilesDir(), uuid_filename).delete();
+                                uuid_file_exists = false;
 
-                Log.d("DELETE USER WITH:", "user uuid = " + user_uuid + "\ncard id = " + proximity_card_id + "\nsession id = " + sign_in_session_uuid);
+                                postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.DELETE_USER);
+                                user_is_registered = false;
+                                btn_register_sign_in.setText(R.string.register);
+                                proximity_card_id = ""; // reset card id
 
-                postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.DELETE_USER);
-                user_is_registered = false;
-                btn_register_sign_in.setText(R.string.register);
-
-                proximity_card_id = ""; // reset card id
-
-                supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu() below
-                notification("You selected to delete your account");
+                                supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu() below
+                                notification("Your account has been deleted successfully.");
+                            })
+                            .setNegativeButton(R.string.no, (dialog, id) -> {
+                                notification("Account deletion was cancelled.");
+                            })
+                            .show();
+                }
             default:
                 return super.onOptionsItemSelected(item);
         }
