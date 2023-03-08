@@ -17,6 +17,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -26,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.Response;
+import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.journeyapps.barcodescanner.ScanContract;
@@ -48,13 +50,13 @@ public class MainActivity extends AppCompatActivity {
     private NfcAdapter nfcAdapter;
     private WifiManager wifiManager;
     private Button btn_register_sign_in;
+    private TextView txt_view_name;
     private final String authentication_url = "http://192.168.2.59/capstone/authentication.php";
     private String qr_code_data = "", user_uuid = "", proximity_card_id = "", sign_in_session_uuid = "";
     private final String uuid_filename = "user_uuid";
-    private boolean uuid_file_exists = false;
+    private boolean uuid_file_exists = false, user_is_registered = false;;
+    // the last boolean must be updated after every time postDataToServer() is called with operation REGISTER_USER or DELETE_USER
 
-    // this boolean must be updated after every time postDataToServer() is called with operation REGISTER_USER or DELETE_USER
-    private boolean user_is_registered = false;
     private AlertDialog scanCardDialog, pendingAuthenticationDialog; // might need to show/hide multiple times
 
     // use PendingIntent, and ForegroundDispatch to prevent Activity from reopening if card is scanned while app is open
@@ -64,8 +66,10 @@ public class MainActivity extends AppCompatActivity {
     private enum Operation {
         REGISTER_USER,
         SIGN_IN_USER,
-        DELETE_USER
+        DELETE_USER,
+        GET_USERS_NAME
     }
+    private String first_name, last_name;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -74,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         btn_register_sign_in = findViewById(R.id.register_sign_in);
+        txt_view_name = findViewById(R.id.users_name);
         nfcAdapter = NfcAdapter.getDefaultAdapter(getApplicationContext());
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -109,14 +114,17 @@ public class MainActivity extends AppCompatActivity {
 
         // 5: if the user is registered, change btn text
         if (uuid_file_exists) {
-            supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu() below
+            user_is_registered = true;
             btn_register_sign_in.setText(R.string.sign_in);
+            supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu() below
             try {
                 setUserUuidFromFile(uuid_filename);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-            user_is_registered = true;
+
+            // get the first and last name of user from database
+            postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.GET_USERS_NAME);
         }
 
         cardWasScanned = PendingIntent.getActivity(this,0,
@@ -126,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
         scanCardDialog = new AlertDialog.Builder(this)
                 .setTitle("Scan Your Card")
                 .setMessage("Put your card on the back of your phone.")
-                .setNegativeButton("Cancel", (dialog, id) -> {})
+                .setNegativeButton(R.string.cancel, (dialog, id) -> {})
                 .create();
 
         pendingAuthenticationDialog = new AlertDialog.Builder(MainActivity.this)
@@ -136,12 +144,15 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .create();
 
-        // executes (only once) if app opens with scan
+        // executes if app opens with scan and every time onCreate() is called
         try {
-            tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
-            // tag.getId() returns byte array; convert to String properly like so
-            proximity_card_id = new String(tag.getId(), StandardCharsets.UTF_8);
-            notification("Card scan caused app to open");
+            // this condition is important because in case onCreate() is called without a tag having been scanned,
+            // (say, in case the phone's orientation changes) then "proximity_card_id" will be assigned to nothing
+            if (proximity_card_id.equals("")) {
+                tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
+                // tag.getId() returns byte array; convert to String properly like so
+                proximity_card_id = new String(tag.getId(), StandardCharsets.UTF_8);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -188,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             // handle multiple card scans
             if (!proximity_card_id.equals("")) {
-                notification("You've already scanned your card.");
+                notification("You've already scanned your card");
                 return;
             }
             tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
@@ -203,13 +214,11 @@ public class MainActivity extends AppCompatActivity {
 
             if (!user_is_registered && !user_uuid.equals("")) {
                 registerUser();
-            } else if (!sign_in_session_uuid.equals("") && user_is_registered) {
-                Log.d("SIGN IN USER WITH:\n", "user uuid = " + user_uuid + "\ncard id = " + proximity_card_id + "\nsession id = " + sign_in_session_uuid);
+            } else if (user_is_registered && !sign_in_session_uuid.equals("")) {
                 postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.SIGN_IN_USER);
             }
-
             if (scanCardDialog.isShowing()) scanCardDialog.cancel();
-            notification("Card scanned while app open");
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -231,6 +240,7 @@ public class MainActivity extends AppCompatActivity {
             case R.id.about_option:
                 notification("No About yet");
             case R.id.delete_account_option:
+                // do not allow an account to be deleted if the card has not bee scanned
                 if (proximity_card_id.equals("")) pendingAuthenticationDialog.show();
                 else deleteUserAccount();
             default:
@@ -291,10 +301,15 @@ public class MainActivity extends AppCompatActivity {
         StringRequest stringRequest = new StringRequest(Request.Method.POST, authentication_url, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                notification("XAMPP server response:\n\n" + response);
+                if (operation == Operation.GET_USERS_NAME) {
+                    String[] name = response.split(" ");
+                    first_name = name[0];
+                    last_name = name[1];
+                    txt_view_name.setText("as\n\n" + first_name + "\n" + last_name);
+                } else notification("XAMPP server response:\n\n" + response);
             }
         }, error -> {
-            notification("onErrorResponse() called");
+            notification("Error with XAMPP server");
             error.printStackTrace();
         }) {
             @Override
@@ -321,13 +336,14 @@ public class MainActivity extends AppCompatActivity {
                     postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.DELETE_USER);
                     user_is_registered = false;
                     btn_register_sign_in.setText(R.string.register);
-                    proximity_card_id = ""; // reset card id
+                    proximity_card_id = "";
+                    txt_view_name.setText("");
 
-                    supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu() below
-                    notification("Your account has been deleted successfully.");
+                    supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu()
+                    notification("Your account has been deleted successfully");
                 })
                 .setNegativeButton(R.string.no, (dialog, id) -> {
-                    notification("Account deletion was cancelled.");
+                    notification("Account deletion was cancelled");
                 })
                 .show();
     }
@@ -344,5 +360,6 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu()
+        postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.GET_USERS_NAME);
     }
 }

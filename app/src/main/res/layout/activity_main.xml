@@ -19,4 +19,15 @@
         android:layout_marginBottom="150dp">
     </Button>
 
+    <TextView
+        android:id="@+id/users_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAlignment="center"
+        app:layout_constraintTop_toBottomOf="@+id/register_sign_in"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp">
+    </TextView>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
