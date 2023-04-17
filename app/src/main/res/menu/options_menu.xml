@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:id="@+id/settings_option"
-        android:title="@string/settings" />
     <item android:id="@+id/about_option"
         android:title="@string/about" />
+    <item android:id="@+id/see_card_id_option"
+        android:title="@string/see_card_id" />
+    <item android:id="@+id/change_language_option"
+        android:title="@string/change_language" />
     <item android:id="@+id/delete_account_option"
         android:title="@string/delete_account"
         android:visible="false"/>
-
 </menu>

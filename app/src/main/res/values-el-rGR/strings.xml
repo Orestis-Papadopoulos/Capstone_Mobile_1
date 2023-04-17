@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Qard</string>
+    <string name="scanQRcode">Σκανάρετε το κωδικό QR</string>
+    <string name="register">Εγγραφή</string>
+    <string name="sign_in">Είσοδος</string>
+    <string name="ok">OK</string>
+    <string name="nfc_not_supported">Η Συσκευή Δεν Υποστηρίζει NFC</string>
+    <string name="this_application_cannot_function_without_NFC">Η εφαρμογή δεν μπορεί να λειτουργήσει χωρίς NFC.</string>
+    <string name="nfc_disabled">Το NFC Είναι Απενεργοποιημένο</string>
+    <string name="this_application_requires_NFC_do_you_want_to_turn_it_on">Η εφαρμογή χρειάζεται NFC για να λειτουργήσει. Θέλετε να το ενεργοποιήσετε;</string>
+    <string name="no">ΟΧΙ</string>
+    <string name="wifi_disabled">Το WiFi Είναι Απενεργοποιημένο</string>
+    <string name="this_application_requires_an_Internet_connection_do_you_want_to_turn_WiFi_on">Η εφαρμογή χρειάζεται πρόσβαση στο Διαδίκτυο. Θέλετε να ενεργοποιήσετε το WiFI;</string>
+    <string name="yes">ΝΑΙ</string>
+    <string name="about">Σχετικά με</string>
+    <string name="delete_account">Διαγραφή λογαριασμού</string>
+    <string name="cancel">Ακύρωση</string>
+    <string name="open_scanner">Άνοιγμα Σκάνερ</string>
+    <string name="tip">Ανοίξτε την εφαρμογή Qard στον υπολογιστή σας και δείτε τη σελίδα \"Guide\" για να πραγματοποιήσετε εγγραφή/είσοδο.</string>
+    <string name="see_card_id">Δείτε το id της κάρτας</string>
+    <string name="you_are_not_registered">Δεν έχετε εγγραφεί</string>
+    <string name="you_are_registered_as">Έχετε εγγραφεί ώς</string>
+    <string name="ip_address_hint">Πληκτρολογήστε την IP του υπολογιστή σας</string>
+    <string name="scan_your_card">Σκανάρετε την Kάρτα Σας</string>
+    <string name="put_card">Τοποθετήστε την κάρτα σας στο πίσω μέρος της συσκευής σας.</string>
+    <string name="pending_authentication">Εκκρεμεί Ταυτοποίηση</string>
+    <string name="scan_to_delete">Σκανάρετε την κάρτα σας για να διαγράψετε τον λογαριασμό σας.</string>
+    <string name="already_scanned">Έχετε ήδη σκανάρει την κάρτα σας</string>
+    <string name="scan_to_see_id">Σκανάρετε την κάρτα σας για να δείτε το id</string>
+    <string name="your_card_id">Το id της κάρτας σας είναι:</string>
+    <string name="scan_code">Σκανάρετε τον κωδικό QR</string>
+    <string name="press_volume">Πατήστε το κουμπί αύξησης ήχου για φλάς</string>
+    <string name="server_response">Απάντηση XAMPP σέρβερ:</string>
+    <string name="server_error">Σφάλμα XAMPP σέρβερ</string>
+    <string name="confirm_deletion">Επιβεβαίωση Διαγραφής Λογαριασμού</string>
+    <string name="are_you_sure">Είστε σίγουροι πως θέλετε να διαγράψετε τον λογαριασμό σας;</string>
+    <string name="account_deleted">Ο λογαριασμός σας διαγράφτηκε επιτυχώς</string>
+    <string name="deletion_cancelled">Η διαγραφή του λογαριασμού ακυρώθηκε</string>
+    <string name="about_message">Αυτή η εφαρμογή συνοδεύει την εφαρμογής Ιστού Qard για σκοπούς ταυτοποίησης.
+    Ανοίξτε το Qard στον υπολογιστή σας και ακολουθήστε τη σελίδα \"Guide\" για να εγγραφείτε/συνδεθείτε.
+    \n\nITC4918 Software Development Capstone Project\n\n
+    Άνοιξη 2023\n\n
+    Ορέστης Παπαδόπουλος\n\n
+    Ιωάννης Χρήστου, Ph.D.
+    \n\nΤο μάθημα είναι η πτυχιακή εργασία για φοιτητές που ακολουθούν την πορεία Ανάπτυξης Λογισμικού
+    του προγράμματος πληροφορικής. Οι σπουδαστές απαιτείται να αναπτύξουν μια ολοκληρωμένη εφαρμογή σε
+    ένα δεδομένο πρόβλημα, με βάση τις γνώσεις και τις δεξιότητες που απέκτησαν κατά τη διάρκεια των σπουδών
+    τους. Επιπλέον, οι σπουδαστές θα αποκτήσουν την εμπειρία εργασίας σε πραγματικό χρόνο και θα
+    συνδυάσουν τις ακαδημαϊκές με τις επαγγελματικές πρακτικές, συμπεριλαμβανομένης της έρευνας για συγκεκριμένο
+    τομέα, της σταδιακής προόδου, της επανεξέτασης και της αξιολόγησης.
+    </string>
+    <string name="change_language">Αλλαγή γλώσσας</string>
+</resources>

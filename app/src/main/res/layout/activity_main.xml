@@ -7,11 +7,39 @@
     tools:context=".MainActivity"
     android:padding="10dp">
 
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/ip_address_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/ip_address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:hint="@string/ip_address_hint"
+            android:text="192.168.2.59">
+
+        </com.google.android.material.textfield.TextInputEditText>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <ImageView
+        android:id="@+id/qr_image"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:src="@drawable/qr_code_scan"
+        app:layout_constraintTop_toBottomOf="@id/ip_address_layout"
+        app:layout_constraintBottom_toTopOf="@id/open_scanner">
+
+    </ImageView>
+
     <Button
-        android:id="@+id/register_sign_in"
+        android:id="@+id/open_scanner"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/register"
+        android:text="@string/open_scanner"
         android:textAllCaps="false"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -24,7 +52,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAlignment="center"
-        app:layout_constraintTop_toBottomOf="@+id/register_sign_in"
+        app:layout_constraintTop_toBottomOf="@+id/open_scanner"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="10dp">

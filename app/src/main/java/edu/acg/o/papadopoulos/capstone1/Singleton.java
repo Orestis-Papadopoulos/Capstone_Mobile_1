@@ -6,6 +6,7 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 
+// used in MainActivity by method "postDataToServer()"
 public class Singleton {
 
     private static Singleton singleton;

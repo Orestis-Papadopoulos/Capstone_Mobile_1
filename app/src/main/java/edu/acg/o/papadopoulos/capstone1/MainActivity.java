@@ -11,12 +11,11 @@ import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,11 +23,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
-import com.android.volley.Response;
-import com.android.volley.RetryPolicy;
-import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
@@ -45,22 +40,41 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * This application allows users to authenticate themselves to the Qard web app. A MIFARE Classic
+ * proximity card must be scanned on the back of the phone and then the user must scan the QR code
+ * displayed by the web app in order to register/sign in.
+ *
+ * @course ITC4918 Software Development Capstone project
+ * @semester Spring 2023
+ * @author Orestis Papadopoulos
+ * @instructor Ioannis Christou, Ph.D.
+ * */
+
 public class MainActivity extends AppCompatActivity {
 
     private NfcAdapter nfcAdapter;
     private WifiManager wifiManager;
-    private Button btn_register_sign_in;
-    private TextView txt_view_name;
-    private final String authentication_url = "http://192.168.2.59/capstone/authentication.php";
-    private String qr_code_data = "", user_uuid = "", proximity_card_id = "", sign_in_session_uuid = "";
-    private final String uuid_filename = "user_uuid";
-    private boolean uuid_file_exists = false, user_is_registered = false;;
-    // the last boolean must be updated after every time postDataToServer() is called with operation REGISTER_USER or DELETE_USER
 
-    private AlertDialog scanCardDialog, pendingAuthenticationDialog; // might need to show/hide multiple times
+    // when the language is changed, the hint on this EditText is the only one which does not change
+    // the app must close and open again for the text to change language
+    private EditText ip_address;
+    private Button btn_open_scanner;
+    private TextView txt_view_name;
+
+    private String authentication_url = "";
+    private String qr_code_data = "", user_uuid = "", proximity_card_id = "", sign_in_session_uuid = "";
+    private String uuid_filename = "user_uuid";
+    private String first_name, last_name;
+
+    // must be updated after every time postDataToServer() is called with operation REGISTER_USER or DELETE_USER
+    private boolean uuid_file_exists = false, user_is_registered = false;;
+
+    // make these dialogs global because they might need to show/hide multiple times
+    private AlertDialog scanCardDialog, pendingAuthenticationDialog;
 
     // use PendingIntent, and ForegroundDispatch to prevent Activity from reopening if card is scanned while app is open
-    // the app can open auto if card is scanned; if the app is opened manually, wait for card to be scanned with this Intent
+    // the app can open automatically if a card is scanned; if the app is opened manually, wait for card to be scanned with this Intent
     private PendingIntent cardWasScanned;
     private Tag tag;
     private enum Operation {
@@ -69,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
         DELETE_USER,
         GET_USERS_NAME
     }
-    private String first_name, last_name;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -77,12 +90,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btn_register_sign_in = findViewById(R.id.register_sign_in);
+        ip_address = findViewById(R.id.ip_address);
+        btn_open_scanner = findViewById(R.id.open_scanner);
         txt_view_name = findViewById(R.id.users_name);
+        txt_view_name.setText(R.string.you_are_not_registered);
         nfcAdapter = NfcAdapter.getDefaultAdapter(getApplicationContext());
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
-        // 1: check if the phone has NFC
+        // 1: check if the phone has NFC; if it does not, close app
         if (nfcAdapter == null) {
             new AlertDialog.Builder(MainActivity.this)
                     .setTitle(R.string.nfc_not_supported)
@@ -93,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
                     .show();
         }
 
-        // 2: prompt user to enable NFC
+        // 2: prompt user to enable NFC (will open NFC Settings)
         if (!nfcAdapter.isEnabled()) {
             new AlertDialog.Builder(MainActivity.this)
                     .setTitle(R.string.nfc_disabled)
@@ -101,8 +116,7 @@ public class MainActivity extends AppCompatActivity {
                     .setPositiveButton(R.string.yes, (dialog, id) -> {
                         startActivity(new Intent(Settings.ACTION_NFC_SETTINGS));
                     })
-                    .setNegativeButton(R.string.no, (dialog, id) -> {
-                    })
+                    .setNegativeButton(R.string.no, (dialog, id) -> {})
                     .show();
         }
 
@@ -112,10 +126,9 @@ public class MainActivity extends AppCompatActivity {
         String[] app_specific_files = getApplicationContext().fileList();
         uuid_file_exists = Arrays.asList(app_specific_files).contains(uuid_filename);
 
-        // 5: if the user is registered, change btn text
+        // 5: if the user is registered, update options menu and set user uuid
         if (uuid_file_exists) {
             user_is_registered = true;
-            btn_register_sign_in.setText(R.string.sign_in);
             supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu() below
             try {
                 setUserUuidFromFile(uuid_filename);
@@ -127,19 +140,20 @@ public class MainActivity extends AppCompatActivity {
             postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.GET_USERS_NAME);
         }
 
+        // the app can open automatically if a card is scanned; if the app is opened manually, wait for card to be scanned with this Intent
         cardWasScanned = PendingIntent.getActivity(this,0,
                 new Intent(this, this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
 
-        // notice: the dialogs are created, not shown
+        // the dialogs are created, not shown
         scanCardDialog = new AlertDialog.Builder(this)
-                .setTitle("Scan Your Card")
-                .setMessage("Put your card on the back of your phone.")
+                .setTitle(R.string.scan_your_card)
+                .setMessage(R.string.put_card)
                 .setNegativeButton(R.string.cancel, (dialog, id) -> {})
                 .create();
 
         pendingAuthenticationDialog = new AlertDialog.Builder(MainActivity.this)
-                .setTitle("Pending Authentication")
-                .setMessage("Scan your card over the phone to delete your account.")
+                .setTitle(R.string.pending_authentication)
+                .setMessage(R.string.scan_to_delete)
                 .setNegativeButton(R.string.cancel, (dialog, id) -> {
                 })
                 .create();
@@ -150,15 +164,15 @@ public class MainActivity extends AppCompatActivity {
             // (say, in case the phone's orientation changes) then "proximity_card_id" will be assigned to nothing
             if (proximity_card_id.equals("")) {
                 tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
-                // tag.getId() returns byte array; convert to String properly like so
-                proximity_card_id = new String(tag.getId(), StandardCharsets.UTF_8);
+                // tag.getId() returns byte array; convert to String like so:
+                if (tag != null) proximity_card_id = new String(tag.getId(), StandardCharsets.UTF_8);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // the button opens the QR code scanner regardless of its text ("Register", or "Sign In")
-        btn_register_sign_in.setOnClickListener(view -> openQRCodeScanner());
+        // button listener QR code scanner
+        btn_open_scanner.setOnClickListener(view -> openQRCodeScanner());
     }
 
     @Override
@@ -174,8 +188,7 @@ public class MainActivity extends AppCompatActivity {
                     .setPositiveButton(R.string.yes, (dialog, id) -> {
                         startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
                     })
-                    .setNegativeButton(R.string.no, (dialog, id) -> {
-                    })
+                    .setNegativeButton(R.string.no, (dialog, id) -> {})
                     .show();
         }
 
@@ -199,9 +212,10 @@ public class MainActivity extends AppCompatActivity {
         try {
             // handle multiple card scans
             if (!proximity_card_id.equals("")) {
-                notification("You've already scanned your card");
+                notification(getString(R.string.already_scanned));
                 return;
             }
+            // convert byte array to String
             tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
             proximity_card_id = new String(tag.getId(), StandardCharsets.UTF_8);
 
@@ -235,14 +249,26 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.settings_option:
-                notification("No Settings yet");
+            // if you don't add the "return true;", all options are clicked when one is clicked
             case R.id.about_option:
-                notification("No About yet");
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle(R.string.about)
+                        .setMessage(R.string.about_message)
+                        .setPositiveButton(R.string.ok, (dialog, id) -> {})
+                        .show();
+                return true;
+            case R.id.see_card_id_option:
+                if (proximity_card_id.equals("")) notification(getString(R.string.scan_to_see_id));
+                else notification(getString(R.string.your_card_id) + "\t\t" + proximity_card_id);
+                return true;
+            case R.id.change_language_option:
+                startActivity(new Intent(Settings.ACTION_LOCALE_SETTINGS));
+                return true;
             case R.id.delete_account_option:
                 // do not allow an account to be deleted if the card has not bee scanned
                 if (proximity_card_id.equals("")) pendingAuthenticationDialog.show();
                 else deleteUserAccount();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -252,17 +278,26 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
+        // show the "Delete account" option only if the user is registered (i.e., when there is an account to delete)
         menu.findItem(R.id.delete_account_option).setVisible(uuid_file_exists);
         return false;
     }
 
+    /**
+     * Displays a Toast with the specified message.
+     * @param message The text to display.
+     * */
     public void notification(String message) {
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * Starts the QR code scanner Activity.
+     * @source https://github.com/journeyapps/zxing-android-embedded
+     * */
     private void openQRCodeScanner() {
         ScanOptions options = new ScanOptions();
-        options.setPrompt("             Scan the QR code\n\n\n\n\n\n\nPress volume up to turn flash on\n\n\n\n");
+        options.setPrompt("             " + getString(R.string.scan_code) + "\n\n\n\n\n\n\n" + getString(R.string.press_volume) + "\n\n\n\n");
         options.setBeepEnabled(true);
         options.setOrientationLocked(true);
         options.setCaptureActivity(CaptureAct.class);
@@ -282,6 +317,10 @@ public class MainActivity extends AppCompatActivity {
     });
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    /**
+     * Sets the "user_uuid" variable to the value in the passed file.
+     * @param filename The name of the file where the user's uuid is stored.
+     * */
     public void setUserUuidFromFile(String filename) throws FileNotFoundException {
 
         FileInputStream fileInputStream = getApplicationContext().openFileInput(filename);
@@ -297,19 +336,29 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Uses the HTTP POST method to interact with the database.
+     * @param user_uuid The user's universally unique id.
+     * @param proximity_card_id The serial number of the user's proximity card.
+     * @param sign_in_session_uuid The universally unique id of the current sign in session of the user.
+     * @param operation The way the app will interact with the database (register/sign in/delete user, or get user's name).
+     * @source https://www.c-sharpcorner.com/article/send-data-to-the-remote-database-in-android-application/
+     * */
     public void postDataToServer(String user_uuid, String proximity_card_id, String sign_in_session_uuid, Operation operation) {
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, authentication_url, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                if (operation == Operation.GET_USERS_NAME) {
-                    String[] name = response.split(" ");
-                    first_name = name[0];
-                    last_name = name[1];
-                    txt_view_name.setText("as\n\n" + first_name + "\n" + last_name);
-                } else notification("XAMPP server response:\n\n" + response);
-            }
+
+        // you need the XAMPP web server installed for this
+        // the "authentication.php" script must be stored at C:\xampp\htdocs\capstone
+        authentication_url = "http://" + ip_address.getText() + "/capstone/authentication.php";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, authentication_url, response -> {
+            if (operation == Operation.GET_USERS_NAME) {
+                String[] name = response.split(" ");
+                first_name = name[0];
+                last_name = name[1];
+                txt_view_name.setText(getString(R.string.you_are_registered_as)  + "\n\n" + first_name + "\n" + last_name);
+            } else notification(getString(R.string.server_response) + "\n\n" + response);
         }, error -> {
-            notification("Error with XAMPP server");
+            notification(getString(R.string.server_error));
             error.printStackTrace();
         }) {
             @Override
@@ -325,33 +374,42 @@ public class MainActivity extends AppCompatActivity {
         Singleton.getInstance(MainActivity.this).addToRequestQueue(stringRequest);
     }
 
+    /**
+     * Deletes the app-specific file which holds the user's uuid,
+     * deletes the user from the database,
+     * resets the user's card id,
+     * updates the options menu.
+     * */
     public void deleteUserAccount() {
         new AlertDialog.Builder(MainActivity.this)
-                .setTitle("Confirm Account Deletion")
-                .setMessage("Are you sure you want to delete your account?")
+                .setTitle(getString(R.string.confirm_deletion))
+                .setMessage(getString(R.string.are_you_sure))
                 .setPositiveButton(R.string.yes, (dialog, id) -> {
                     new File(this.getFilesDir(), uuid_filename).delete();
                     uuid_file_exists = false;
 
                     postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.DELETE_USER);
                     user_is_registered = false;
-                    btn_register_sign_in.setText(R.string.register);
                     proximity_card_id = "";
-                    txt_view_name.setText("");
+                    txt_view_name.setText(R.string.you_are_not_registered);
 
                     supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu()
-                    notification("Your account has been deleted successfully");
+                    notification(getString(R.string.account_deleted));
                 })
                 .setNegativeButton(R.string.no, (dialog, id) -> {
-                    notification("Account deletion was cancelled");
+                    notification(getString(R.string.deletion_cancelled));
                 })
                 .show();
     }
 
+    /**
+     * Adds the user to the database,
+     * creates a file which holds the user's uuid,
+     * updates the options menu.
+     * */
     public void registerUser() {
         postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.REGISTER_USER);
         user_is_registered = true;
-        btn_register_sign_in.setText(R.string.sign_in);
 
         try (FileOutputStream fileOutputStream = this.openFileOutput(uuid_filename, Context.MODE_PRIVATE)) {
             fileOutputStream.write(user_uuid.getBytes());
