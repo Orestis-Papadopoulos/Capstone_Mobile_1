@@ -30,6 +30,10 @@ public class SplashScreenActivity extends AppCompatActivity {
             public void onFinish(){
                 Intent mainActivityIntent = new Intent(SplashScreenActivity.this, MainActivity.class);
                 startActivity(mainActivityIntent);
+
+                // add this so that when the back button is pressed in MainActivity,
+                // the SplashScreenActivity is not shown
+                finish();
             }
         }.start();
     }
