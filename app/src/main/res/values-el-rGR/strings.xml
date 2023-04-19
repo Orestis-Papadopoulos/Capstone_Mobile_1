@@ -28,7 +28,7 @@
     <string name="scan_to_delete">Σκανάρετε την κάρτα σας για να διαγράψετε τον λογαριασμό σας.</string>
     <string name="already_scanned">Έχετε ήδη σκανάρει την κάρτα σας</string>
     <string name="scan_to_see_id">Σκανάρετε την κάρτα σας για να δείτε το id</string>
-    <string name="your_card_id">Το id της κάρτας σας είναι:</string>
+    <string name="your_card_id">Id κάρτας:</string>
     <string name="scan_code">Σκανάρετε τον κωδικό QR</string>
     <string name="press_volume">Πατήστε το κουμπί αύξησης ήχου για φλάς</string>
     <string name="server_response">Απάντηση XAMPP σέρβερ:</string>
@@ -38,7 +38,7 @@
     <string name="account_deleted">Ο λογαριασμός σας διαγράφτηκε επιτυχώς</string>
     <string name="deletion_cancelled">Η διαγραφή του λογαριασμού ακυρώθηκε</string>
     <string name="about_message">Αυτή η εφαρμογή συνοδεύει την εφαρμογής Ιστού Qard για σκοπούς ταυτοποίησης.
-    Ανοίξτε το Qard στον υπολογιστή σας και ακολουθήστε τη σελίδα \"Guide\" για να εγγραφείτε/συνδεθείτε.
+    Ανοίξτε το Qard στον υπολογιστή σας για να εγγραφείτε/συνδεθείτε.
     \n\nITC4918 Software Development Capstone Project\n\n
     Άνοιξη 2023\n\n
     Ορέστης Παπαδόπουλος\n\n
@@ -51,4 +51,5 @@
     τομέα, της σταδιακής προόδου, της επανεξέτασης και της αξιολόγησης.
     </string>
     <string name="change_language">Αλλαγή γλώσσας</string>
+    <string name="cannot_use_app">Δεν μπορείτε να χρησιμοποιήσετε την εφαρμογή γιατί η συσκευή σας δεν υποστηρίζει NFC.</string>
 </resources>

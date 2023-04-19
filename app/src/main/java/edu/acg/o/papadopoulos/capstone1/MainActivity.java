@@ -23,6 +23,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.toolbox.StringRequest;
 import com.journeyapps.barcodescanner.ScanContract;
@@ -70,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
     // must be updated after every time postDataToServer() is called with operation REGISTER_USER or DELETE_USER
     private boolean uuid_file_exists = false, user_is_registered = false;;
 
-    // make these dialogs global because they might need to show/hide multiple times
+    // these dialogs are global because they might need to show/hide multiple times
     private AlertDialog scanCardDialog, pendingAuthenticationDialog;
 
     // use PendingIntent, and ForegroundDispatch to prevent Activity from reopening if card is scanned while app is open
@@ -106,6 +107,10 @@ public class MainActivity extends AppCompatActivity {
                         finishAndRemoveTask(); // closes app
                     })
                     .show();
+
+            // this is needed because otherwise I get a null pointer exception
+            // every time the nfcAdapter is invoked
+            return;
         }
 
         // 2: prompt user to enable NFC (will open NFC Settings)
@@ -158,14 +163,14 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .create();
 
-        // executes if app opens with scan and every time onCreate() is called
         try {
-            // this condition is important because in case onCreate() is called without a tag having been scanned,
-            // (say, in case the phone's orientation changes) then "proximity_card_id" will be assigned to nothing
+            // this condition is important because in case onCreate() is called without a tag
+            // having been scanned, then "proximity_card_id" will be assigned to nothing
+
             if (proximity_card_id.equals("")) {
-                tag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
-                // tag.getId() returns byte array; convert to String like so:
-                if (tag != null) proximity_card_id = new String(tag.getId(), StandardCharsets.UTF_8);
+                // get proximity_card_id from SplashActivity
+                Bundle bundle = getIntent().getExtras();
+                proximity_card_id = bundle.getString("proximity_card_id");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -181,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 3: prompt user to enable WiFi
         // first NFC is enabled and when the user returns to MainActivity WiFi is checked
-        if (!wifiManager.isWifiEnabled() && nfcAdapter.isEnabled()) {
+        if (nfcAdapter != null && !wifiManager.isWifiEnabled() && nfcAdapter.isEnabled()) {
             new AlertDialog.Builder(MainActivity.this)
                     .setTitle(R.string.wifi_disabled)
                     .setMessage(R.string.this_application_requires_an_Internet_connection_do_you_want_to_turn_WiFi_on)
@@ -193,7 +198,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // enable the foreground dispatch to wait for card scan (in case the app did not open via scan)
-        nfcAdapter.enableForegroundDispatch(this, cardWasScanned,null,null);
+        if (nfcAdapter != null) {
+            nfcAdapter.enableForegroundDispatch(this, cardWasScanned,null,null);
+        }
     }
 
     @Override
@@ -211,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
         // called when card is scanned while app is open
         try {
             // handle multiple card scans
-            if (!proximity_card_id.equals("")) {
+            if (proximity_card_id != null) {
                 notification(getString(R.string.already_scanned));
                 return;
             }
@@ -258,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
                         .show();
                 return true;
             case R.id.see_card_id_option:
-                if (proximity_card_id.equals("")) notification(getString(R.string.scan_to_see_id));
+                if (proximity_card_id == null) notification(getString(R.string.scan_to_see_id));
                 else notification(getString(R.string.your_card_id) + "\t\t" + proximity_card_id);
                 return true;
             case R.id.change_language_option:
@@ -310,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
         if (user_is_registered) sign_in_session_uuid = qr_code_data;
         else user_uuid = qr_code_data;
 
-        if (!proximity_card_id.equals("")) {
+        if (proximity_card_id != null && !proximity_card_id.equals("")) {
             if (user_is_registered) postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.SIGN_IN_USER);
             else registerUser();
         } else scanCardDialog.show();
@@ -372,6 +379,7 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         Singleton.getInstance(MainActivity.this).addToRequestQueue(stringRequest);
+
     }
 
     /**

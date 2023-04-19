@@ -17,7 +17,7 @@
     <string name="cancel">Cancel</string>
     <string name="open_scanner">Open Scanner</string>
     <string name="tip">Open the Qard web app on your computer and see the guide on how to register/sign in.</string>
-    <string name="about_message">This application serves as a companion to the Qard web app for authentication. Open Qard on your computer and follow the \"Guide\" to register/sign in.
+    <string name="about_message">This application serves as a companion to the Qard web app for authentication. Open Qard on your computer to register/sign in.
     \n\nITC4918 Software Development Capstone Project\n\n
     Spring 2023\n\n
     Orestis Papadopoulos\n\n
@@ -37,7 +37,7 @@
     <string name="scan_to_delete">Scan your card over the phone to delete your account.</string>
     <string name="already_scanned">You\'ve already scanned your card</string>
     <string name="scan_to_see_id">Scan your card to see its id</string>
-    <string name="your_card_id">Your proximity card id is:</string>
+    <string name="your_card_id">Proximity card id:</string>
     <string name="scan_code">Scan the QR code</string>
     <string name="press_volume">Press volume up to turn flash on</string>
     <string name="server_response">XAMPP server response:</string>
@@ -47,4 +47,5 @@
     <string name="account_deleted">Your account has been deleted successfully</string>
     <string name="deletion_cancelled">Account deletion was cancelled</string>
     <string name="change_language">Change language</string>
+    <string name="cannot_use_app">You cannot use the app because your device does not have NFC.</string>
 </resources>

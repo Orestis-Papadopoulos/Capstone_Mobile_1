@@ -7,6 +7,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 
 // used in MainActivity by method "postDataToServer()"
+// source: https://www.c-sharpcorner.com/article/send-data-to-the-remote-database-in-android-application/
 public class Singleton {
 
     private static Singleton singleton;
