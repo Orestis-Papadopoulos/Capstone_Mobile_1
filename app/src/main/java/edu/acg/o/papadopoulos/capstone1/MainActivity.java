@@ -100,10 +100,18 @@ public class MainActivity extends AppCompatActivity {
 
         // 1: check if the phone has NFC; if it does not, close app
         if (nfcAdapter == null) {
+            // to disable "See card id" option
+            supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu()
+            ip_address.setEnabled(false);
+            btn_open_scanner.setEnabled(false);
+
             new AlertDialog.Builder(MainActivity.this)
                     .setTitle(R.string.nfc_not_supported)
                     .setMessage(R.string.this_application_cannot_function_without_NFC)
                     .setPositiveButton(R.string.ok, (dialog, id) -> {
+
+                    })
+                    .setNegativeButton(R.string.close_app, (dialog, id) -> {
                         finishAndRemoveTask(); // closes app
                     })
                     .show();
@@ -265,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
                         .show();
                 return true;
             case R.id.see_card_id_option:
-                if (proximity_card_id == null) notification(getString(R.string.scan_to_see_id));
+                if (proximity_card_id == null || proximity_card_id.equals("")) notification(getString(R.string.scan_to_see_id));
                 else notification(getString(R.string.your_card_id) + "\t\t" + proximity_card_id);
                 return true;
             case R.id.change_language_option:
@@ -287,6 +295,7 @@ public class MainActivity extends AppCompatActivity {
         super.onPrepareOptionsMenu(menu);
         // show the "Delete account" option only if the user is registered (i.e., when there is an account to delete)
         menu.findItem(R.id.delete_account_option).setVisible(uuid_file_exists);
+        menu.findItem(R.id.see_card_id_option).setEnabled(nfcAdapter != null);
         return false;
     }
 

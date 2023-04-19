@@ -48,4 +48,5 @@
     <string name="deletion_cancelled">Account deletion was cancelled</string>
     <string name="change_language">Change language</string>
     <string name="cannot_use_app">You cannot use the app because your device does not have NFC.</string>
+    <string name="close_app">Close app</string>
 </resources>
