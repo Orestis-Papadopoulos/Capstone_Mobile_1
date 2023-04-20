@@ -226,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
         // called when card is scanned while app is open
         try {
             // handle multiple card scans
-            if (proximity_card_id != null) {
+            if (proximity_card_id != null && !proximity_card_id.equals("")) {
                 notification(getString(R.string.already_scanned));
                 return;
             }
@@ -281,7 +281,7 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.delete_account_option:
                 // do not allow an account to be deleted if the card has not bee scanned
-                if (proximity_card_id.equals("")) pendingAuthenticationDialog.show();
+                if (proximity_card_id == null || proximity_card_id.equals("")) pendingAuthenticationDialog.show();
                 else deleteUserAccount();
                 return true;
             default:

@@ -32,7 +32,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         actionBar.hide();
 
         // show this Activity for 5 seconds and then navigate to MainActivity
-        new CountDownTimer(5000,1000){
+        new CountDownTimer(4000,1000){
             @Override
             public void onTick(long millisUntilFinished){}
 
