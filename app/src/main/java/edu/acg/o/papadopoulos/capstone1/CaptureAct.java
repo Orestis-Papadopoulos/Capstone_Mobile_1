@@ -4,8 +4,11 @@ import android.content.Intent;
 
 import com.journeyapps.barcodescanner.CaptureActivity;
 
-// used in MainActivity by method "openQRCodeScanner()"
-// source: https://github.com/journeyapps/zxing-android-embedded
+/**
+ * Used in MainActivity by method "openQRCodeScanner()".
+ * @source https://github.com/journeyapps/zxing-android-embedded
+ * */
+
 public class CaptureAct extends CaptureActivity {
 
     @Override

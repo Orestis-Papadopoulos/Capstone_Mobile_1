@@ -6,26 +6,33 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 
-// used in MainActivity by method "postDataToServer()"
-// source: https://www.c-sharpcorner.com/article/send-data-to-the-remote-database-in-android-application/
+/**
+ * Used in MainActivity by method "postDataToServer()"
+ * @source https://www.c-sharpcorner.com/article/send-data-to-the-remote-database-in-android-application/
+ * */
+
 public class Singleton {
 
-    private static Singleton singleton;
+    private static Singleton mInstance;
     private RequestQueue requestQueue;
-    private static Context context;
+    private static Context mCtx;
 
     private Singleton (Context Context) {
-        context = Context;
+        mCtx = Context;
         requestQueue = getRequestQueue();
     }
 
     public static  synchronized Singleton getInstance (Context context) {
-        if (singleton == null) singleton = new Singleton(context);
-        return singleton;
+        if (mInstance==null) {
+            mInstance =new Singleton(context);
+        }
+        return mInstance;
     }
 
     public RequestQueue getRequestQueue() {
-        if (requestQueue == null) requestQueue = Volley.newRequestQueue(context.getApplicationContext());
+        if (requestQueue==null) {
+            requestQueue = Volley.newRequestQueue(mCtx.getApplicationContext());
+        }
         return requestQueue;
     }
 

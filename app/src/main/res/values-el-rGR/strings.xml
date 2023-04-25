@@ -53,4 +53,5 @@
     <string name="change_language">Αλλαγή γλώσσας</string>
     <string name="cannot_use_app">Δεν μπορείτε να χρησιμοποιήσετε την εφαρμογή γιατί η συσκευή σας δεν υποστηρίζει NFC.</string>
     <string name="close_app">Κλείσιμο εφαρμογής</string>
+    <string name="default_ip_address">192.168.2.59</string>
 </resources>

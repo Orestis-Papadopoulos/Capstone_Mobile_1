@@ -3,12 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="edu.acg.o.papadopoulos.capstone1">
 
+    <!-- for Volley -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <uses-permission android:name="android.permission.NFC" />
     <uses-sdk android:minSdkVersion="10"/>
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
 

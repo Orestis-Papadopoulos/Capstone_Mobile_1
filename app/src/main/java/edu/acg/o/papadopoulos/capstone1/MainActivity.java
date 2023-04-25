@@ -23,11 +23,19 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.ServerError;
+import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,6 +44,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,19 +66,19 @@ public class MainActivity extends AppCompatActivity {
     private NfcAdapter nfcAdapter;
     private WifiManager wifiManager;
 
-    // when the language is changed, the hint on this EditText is the only one which does not change
+    // when the language is changed, the hint on this EditText is the only text which does not change
     // the app must close and open again for the text to change language
-    private EditText ip_address;
+    private EditText editText_ip_address;
     private Button btn_open_scanner;
     private TextView txt_view_name;
 
     private String authentication_url = "";
-    private String qr_code_data = "", user_uuid = "", proximity_card_id = "", sign_in_session_uuid = "";
-    private String uuid_filename = "user_uuid";
+    private String qr_code_data = "", user_uuid = "", proximity_card_id = "", sign_in_session_uuid = "", ip_address = "";
+    private String uuid_filename = "user_uuid", ip_address_filename = "ip_address";
     private String first_name, last_name;
 
     // must be updated after every time postDataToServer() is called with operation REGISTER_USER or DELETE_USER
-    private boolean uuid_file_exists = false, user_is_registered = false;;
+    private boolean uuid_file_exists = false, user_is_registered = false, ip_address_file_exists = false;
 
     // these dialogs are global because they might need to show/hide multiple times
     private AlertDialog scanCardDialog, pendingAuthenticationDialog;
@@ -91,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ip_address = findViewById(R.id.ip_address);
+        editText_ip_address = findViewById(R.id.ip_address);
         btn_open_scanner = findViewById(R.id.open_scanner);
         txt_view_name = findViewById(R.id.users_name);
         txt_view_name.setText(R.string.you_are_not_registered);
@@ -102,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
         if (nfcAdapter == null) {
             // to disable "See card id" option
             supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu()
-            ip_address.setEnabled(false);
+            editText_ip_address.setEnabled(false);
             btn_open_scanner.setEnabled(false);
 
             new AlertDialog.Builder(MainActivity.this)
@@ -135,16 +144,29 @@ public class MainActivity extends AppCompatActivity {
 
         // 3: onResume() called
 
-        // 4: check if app-specific file exists; if it does, the user has been registered
+        // 4: check if app-specific files exist; if they do, the user has been registered
         String[] app_specific_files = getApplicationContext().fileList();
         uuid_file_exists = Arrays.asList(app_specific_files).contains(uuid_filename);
+        ip_address_file_exists = Arrays.asList(app_specific_files).contains(ip_address_filename);
 
-        // 5: if the user is registered, update options menu and set user uuid
+        // 5: set the IP address value with the data read from the file
+        if (ip_address_file_exists) {
+            try {
+                ip_address = getFileContent(ip_address_filename);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            // set the EditText's placeholder with the read IP
+            editText_ip_address.setText(ip_address);
+        } else editText_ip_address.setText(R.string.default_ip_address); // the IP of the computer I used during testing
+
+        // 6: if the user is registered, update options menu and set user uuid
         if (uuid_file_exists) {
             user_is_registered = true;
             supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu() below
             try {
-                setUserUuidFromFile(uuid_filename);
+                user_uuid = getFileContent(uuid_filename);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
@@ -184,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        // button listener QR code scanner
+        // button listener for QR code scanner
         btn_open_scanner.setOnClickListener(view -> openQRCodeScanner());
     }
 
@@ -332,12 +354,13 @@ public class MainActivity extends AppCompatActivity {
         } else scanCardDialog.show();
     });
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     /**
-     * Sets the "user_uuid" variable to the value in the passed file.
-     * @param filename The name of the file where the user's uuid is stored.
+     * Returns the file content of the passed file (used for files containing either user uuid, or IP address).
+     * @param filename The name of the file to be read.
+     * @return The file content as a String.
      * */
-    public void setUserUuidFromFile(String filename) throws FileNotFoundException {
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    public String getFileContent(String filename) throws FileNotFoundException {
 
         FileInputStream fileInputStream = getApplicationContext().openFileInput(filename);
         InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, StandardCharsets.UTF_8);
@@ -346,10 +369,10 @@ public class MainActivity extends AppCompatActivity {
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
             String line = reader.readLine();
             stringBuilder.append(line);
-            user_uuid = stringBuilder.toString();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return stringBuilder.toString();
     }
 
     /**
@@ -364,7 +387,7 @@ public class MainActivity extends AppCompatActivity {
 
         // you need the XAMPP web server installed for this
         // the "authentication.php" script must be stored at C:\xampp\htdocs\capstone
-        authentication_url = "http://" + ip_address.getText() + "/capstone/authentication.php";
+        authentication_url = "http://" + editText_ip_address.getText() + "/capstone/authentication.php";
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, authentication_url, response -> {
             if (operation == Operation.GET_USERS_NAME) {
@@ -388,7 +411,6 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         Singleton.getInstance(MainActivity.this).addToRequestQueue(stringRequest);
-
     }
 
     /**
@@ -404,6 +426,9 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.yes, (dialog, id) -> {
                     new File(this.getFilesDir(), uuid_filename).delete();
                     uuid_file_exists = false;
+
+                    new File(this.getFilesDir(), ip_address_filename).delete();
+                    ip_address_file_exists = false;
 
                     postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.DELETE_USER);
                     user_is_registered = false;
@@ -428,12 +453,22 @@ public class MainActivity extends AppCompatActivity {
         postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.REGISTER_USER);
         user_is_registered = true;
 
+        // write user uuid to app-specific storage
         try (FileOutputStream fileOutputStream = this.openFileOutput(uuid_filename, Context.MODE_PRIVATE)) {
             fileOutputStream.write(user_uuid.getBytes());
             uuid_file_exists = true;
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // write IP address to app-specific storage
+        try (FileOutputStream fileOutputStream = this.openFileOutput(ip_address_filename, Context.MODE_PRIVATE)) {
+            fileOutputStream.write(editText_ip_address.getText().toString().getBytes());
+            ip_address_file_exists = true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         supportInvalidateOptionsMenu(); // calls onPrepareOptionsMenu()
         postDataToServer(user_uuid, proximity_card_id, sign_in_session_uuid, Operation.GET_USERS_NAME);
     }
